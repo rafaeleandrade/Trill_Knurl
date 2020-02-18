@@ -27,39 +27,56 @@ s.waitForBoot {
 	SynthDef(\sketch, {|t_recalibrate=0.0|
 		var i2c_bus = 1;
 		var i2c_address = 0x18;
-		var noiseThreshold = 30; // int: 5-255 with 255 being the highest noise thresh
-		var prescalerOpt = 3; // int: 0-4 with 0 being the highest sensitivity
+		var noiseThreshold = 10; // int: 5-255 with 255 being the highest noise thresh
+		var prescalerOpt = 4; // int: 0-4 with 0 being the highest sensitivity
 		var touchsigs = DC.ar(0).dup(3); // use 3 touches
 		var centroids;
 		var out, ping;
 		var an1,an2;
 		var t_trig_am;
+		var tran;
 
 		// returns an array with format: [num_active_touches, t1_pos, t1_size, t2_pos, t2_size, t3_pos, t3_size, t4_pos, t4_size, t5_pos, t5_size]
 		centroids = TrillCentroids.kr(i2c_bus, i2c_address, noiseThreshold, prescalerOpt, t_recalibrate);
 
-		an1 = 0;
-		an2 = 0;
+		// tran = Trig.kr(Changed.kr(centroids[1]),0.1);
+		// t_trig_am = Changed.kr(centroids[1]);
 		
-		if (centroids[1] == 0.319, {an1 = centroids[2]},{an1 = 0});
-		if (centroids[1] == 0.36, {an2 = centroids[2]},{an2 = 0});
-
 		
-		t_trig_am = Changed.kr(centroids[1]);
-	
-		SendReply.kr(t_trig_am, "/tram", [an1],101);
-		SendReply.kr(t_trig_am, "/tram", [an2],102);  //,touchsigs[1],touchsigs[2],touchsigs[3]
+		SendReply.kr(Impulse.kr(2), "/tram", [centroids[1],centroids[2],centroids[3],centroids[4]],101);  //centroid[1],centroids[2],centroids[3],centroids[4]
+		// SendReply.kr(t_trig_am, "/tram", [centroids],102);  //,touchsigs[1],touchsigs[2],touchsigs[3]
 		
 	}).add;
 
 	s.sync;
 	~tr = Synth(\sketch);
-	OSCdef(\trill, {|msg| 
 	
-	
-	
-	msg[3..].postln }, "/tram");
+			
 
+	OSCdef(\trill, {|msg| var id = msg[2], touch1 = msg[3], pot1 = msg[4], touch2 = msg[5], pot2 = msg[6] ; 
+	
+msg[2..].postln;
+
+while ( { touch1 < 0.361 } && { touch1> 0.359 }, {  "boing".postln });
+
+
+//an1
+	while ( { touch1 < 0.361 } && { touch1 > 0.359 },
+		{  while(touch2 == 0) 
+			{if (~an1 == nil){ ~an1 = 1; "an1 on".postln}}
+			{if (~an2 == nil){ ~an2 = 1 ; "An2 on".postln}};
+	});
+
+//an2
+	while ( { touch1 < 0.32 } && { touch1> 0.319 },
+		{  if(touch2 == 0) 
+			{if (~an3 == nil){ ~an3 = 1 ; "an3 on".postln}}
+			{if (~an4 == nil){ ~an4 = 1 ; "an4 on".postln}}; 
+	});
+	
+
+		
+	 }, "/tram");
 
 
 };
